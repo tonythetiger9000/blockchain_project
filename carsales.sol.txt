@@ -1,0 +1,77 @@
+// SPDX-License-Identifier: MIT
+pragma solidity >=0.8.0 <0.9.0;
+
+contract CarRental {
+    // state variables
+    address payable public owner;
+    address public maintenance; 
+    bool public available;
+    uint public ratePerDay;
+    bool public maintenanceStatus; 
+   
+
+    event Log(address indexed sender, string message);
+
+    constructor() {
+        owner = payable(msg.sender);
+        maintenance = 0x0A098Eda01Ce92ff4A4CCb7A4fFFb5A43EBC70DC; 
+        available = true;
+        ratePerDay = 3 ether;
+        maintenanceStatus = false; 
+        //maintenanceRequest = false; 
+        //maintenanceStatus = false; 
+    }
+
+    // Modifier to check that the caller is the owner of the contract.
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Must be contract owner to call this function");
+        _;
+    }
+    modifier onlyMaintenance() {
+        require(msg.sender == maintenance, "Must be Maintenance to do call this function");
+        _;
+    }
+
+    function bookCar(uint numDays) public payable {
+        // Check availability
+        require(available, "Car is not available.");
+        require(maintenanceStatus, "Car is under maintenance");
+
+        // Check payment amount
+        uint minOffer = ratePerDay * numDays;
+        require(msg.value >= minOffer, "Not enough ether provided.");
+
+        // Recieve payment
+        // owner.transfer(msg.value);
+        (bool sent, bytes memory data) = owner.call{value: msg.value}("");
+        require(sent, "Failed to send Ether");
+        
+        available = false;
+        emit Log(msg.sender, "Car has been booked.");
+
+    }
+
+    function updateRate(uint newRate) public onlyOwner {
+        // require(msg.sender == owner, "Only the contract owner can change the rate.");
+        ratePerDay = newRate;
+        emit Log(msg.sender, "Owner updated car rate.");
+    }
+
+    function makeCarAvailable() public onlyOwner {
+        // require(msg.sender == owner, "Only the car owner can make it available.");
+        available = true;
+        emit Log(msg.sender, "TAKE THE SWEETEST CRUISE IN THE WORLD.");
+    }
+
+    function performMaintenance() public onlyMaintenance { 
+        maintenanceStatus = false; 
+        emit Log(msg.sender, "Car is currently under maintenance.");
+
+    }
+
+     function finishMaintenance() public onlyMaintenance {
+    require(msg.sender == maintenance, "Only the car owner can make it available.");
+    maintenanceStatus = true;
+    emit Log(msg.sender, "Car is all fixed up.");
+    }
+}  
